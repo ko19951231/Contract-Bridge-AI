@@ -20,8 +20,12 @@ struct PokerCard
         else if(color=='d'){
             printf("Dimond ");
         }
-        else{
+        else if(color=='c'){
             printf("Club ");
+        }
+        else {
+            printf("no card\n");
+            return;
         }
         if(point==14){
             printf("A\n");
@@ -119,7 +123,9 @@ struct Situation
             if(this->selfPlayer[i].color!=st.selfPlayer[i].color) return this->selfPlayer[i].color<st.selfPlayer[i].color;
             if(this->selfPlayer[i].point!=st.selfPlayer[i].point) return this->selfPlayer[i].point<st.selfPlayer[i].point;
         }
+        return 0;
     }
+
     void NextStep(PokerCard pc)
     {
         for(int i=0;i<selfPlayer.size();i++){
@@ -183,6 +189,40 @@ struct Situation
             previousPlayer=tmp;
         }
     }
+
+    void print(bool lite)
+    {
+        //printf("****print situation****\n");
+        printf("exist %d card\n", existCard);
+        if(!lite){
+            printf("next card: ");
+            nextCard.print();
+            printf("mate card: ");
+            mateCard.print();
+            printf("previous card: ");
+            mateCard.print();
+        }
+        if(lite){
+            printf("%d %d %d %d\n", selfPlayer.size(), nextPlayer.size(), matePlayer.size(), previousPlayer.size());
+            return;
+        }
+        printf("slef player:\n");
+        for(int i=0;i<selfPlayer.size();i++){
+            selfPlayer[i].print();
+        }
+        printf("next player:\n");
+        for(int i=0;i<nextPlayer.size();i++){
+            nextPlayer[i].print();
+        }
+        printf("mate player:\n");
+        for(int i=0;i<matePlayer.size();i++){
+            matePlayer[i].print();
+        }
+        printf("previous player:\n");
+        for(int i=0;i<previousPlayer.size();i++){
+            previousPlayer[i].print();
+        }
+    }
 };
 
 map<Situation, GameScore> dp;
@@ -190,7 +230,11 @@ map<Situation, PokerCard> model;
 
 GameScore solve(Situation now)
 {
-    if(dp.find(now)!=dp.end()) return dp[now];
+    if(dp.find(now)!=dp.end()){
+        //printf("dp saved\n");
+        if(now.existCard) now.print(1);
+        return dp[now];
+    }
     GameScore ret;
     PokerCard choice;
     if(now.nextPlayer.size()==0&&now.matePlayer.size()==0&&now.previousPlayer.size()==0&&now.selfPlayer.size()==0){
@@ -282,8 +326,8 @@ GameScore solve(Situation now)
         int tmp=ret.scoreWe;
         ret.scoreWe=ret.scoreThey;
         ret.scoreThey=tmp;
-        model[now]=choice;
-        dp[now]=ret;
+        //model[now]=choice;
+        if(now.existCard==0) dp[now]=ret;
         return ret;
     }
     sit.selfPlayer=now.nextPlayer;
@@ -354,8 +398,8 @@ GameScore solve(Situation now)
     int tmp=ret.scoreWe;
     ret.scoreWe=ret.scoreThey;
     ret.scoreThey=tmp;
-    dp[now]=ret;
-    model[now]=choice;
+    if(now.existCard==0) dp[now]=ret;
+    //model[now]=choice;
     return ret;
 }
 
@@ -420,6 +464,6 @@ int main()
     }
     GameScore gs=solve(newSit);
     printf("%d %d\n", gs.scoreWe, gs.scoreThey);
-    print(newSit);
+    //print(newSit);
     return 0;
 }
