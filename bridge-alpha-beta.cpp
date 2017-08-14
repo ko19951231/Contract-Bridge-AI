@@ -9,6 +9,10 @@ struct PokerCard
 {
     char color;
     int point;
+    bool operator==(const PokerCard &pc)const
+    {
+        return (pc.color==this->color&&pc.point==this->point);
+    }
     void print()
     {
         if(color=='s'){
@@ -231,15 +235,17 @@ map<Situation, PokerCard> model;
 GameScore solve(Situation now)
 {
     if(dp.find(now)!=dp.end()){
-        //printf("dp saved\n");
-        if(now.existCard) now.print(1);
         return dp[now];
     }
     GameScore ret;
     PokerCard choice;
-    if(now.nextPlayer.size()==0&&now.matePlayer.size()==0&&now.previousPlayer.size()==0&&now.selfPlayer.size()==0){
+    if(now.nextPlayer.size()==1&&now.matePlayer.size()==1&&now.previousPlayer.size()==1&&now.selfPlayer.size()==1){
+        int battleResult=battle(now.selfPlayer[0], now.nextPlayer[0], now.matePlayer[0], now.previousPlayer[0]);
         ret.scoreWe=0;
         ret.scoreThey=0;
+        if(battleResult==1||battleResult==3) ret.scoreWe++;
+        else ret.scoreThey++;
+        dp[now]=ret;
         return ret;
     }
     ret.scoreWe=-1;
@@ -326,8 +332,14 @@ GameScore solve(Situation now)
         int tmp=ret.scoreWe;
         ret.scoreWe=ret.scoreThey;
         ret.scoreThey=tmp;
-        //model[now]=choice;
+        model[now]=choice;
         if(now.existCard==0) dp[now]=ret;
+        for(int i=0;i<now.selfPlayer.size();i++){
+            if(now.selfPlayer[i]==choice) continue;
+            Situation badSit=now;
+            badSit.NextStep(now.selfPlayer[i]);
+            if(model.find(badSit)!=model.end()) model.erase(badSit);
+        }
         return ret;
     }
     sit.selfPlayer=now.nextPlayer;
@@ -399,7 +411,13 @@ GameScore solve(Situation now)
     ret.scoreWe=ret.scoreThey;
     ret.scoreThey=tmp;
     if(now.existCard==0) dp[now]=ret;
-    //model[now]=choice;
+    model[now]=choice;
+    for(int i=0;i<now.selfPlayer.size();i++){
+        if(now.selfPlayer[i]==choice) continue;
+        Situation badSit=now;
+        badSit.NextStep(now.selfPlayer[i]);
+        if(model.find(badSit)!=model.end()) model.erase(badSit);
+    }
     return ret;
 }
 
@@ -464,6 +482,6 @@ int main()
     }
     GameScore gs=solve(newSit);
     printf("%d %d\n", gs.scoreWe, gs.scoreThey);
-    //print(newSit);
+    print(newSit);
     return 0;
 }
