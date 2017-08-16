@@ -8,6 +8,7 @@ using namespace std;
 
 int modelSize=0;
 int dpSize=0;
+int cardNum;
 
 struct PokerCard
 {
@@ -16,6 +17,10 @@ struct PokerCard
     bool operator==(const PokerCard &pc)const
     {
         return (pc.color==this->color&&pc.point==this->point);
+    }
+    bool operator!=(const PokerCard &pc)const
+    {
+        return !(*this==pc);
     }
     void print()
     {
@@ -280,7 +285,6 @@ void erase(Situation badSit)
     if(model.find(badSit)==model.end()) return;
     Situation nextSit=badSit;
     nextSit.NextStep(model[badSit]);
-    if(modelCnt.find(badSit)==modelCnt.end()) printf("QQQQQQQQQQQQQQQQQQQQQQQQQQ\n");
     modelCnt[badSit]--;
     if(modelCnt[badSit]<=0){
         model.erase(badSit);
@@ -297,7 +301,17 @@ void keep(Situation now)
     keep(now);
 }
 
-GameScore solve(Situation now)
+bool canWin(vector<PokerCard> pcVec, PokerCard pc)
+{
+    for(int i=0;i<pcVec.size();i++){
+        if(battle(pcVec[i], pc)==1){
+            return 1;
+        }
+    }
+    return 0;
+}
+
+GameScore solve(Situation now, int deep)
 {
     if(dp.find(now)!=dp.end()){
         //if(now.selfPlayer.size()>3)printf("find %d %d %d %d\n", now.selfPlayer.size(), now.nextPlayer.size(), now.matePlayer.size(), now.previousPlayer.size());
@@ -308,10 +322,10 @@ GameScore solve(Situation now)
         dpSize=dp.size();
         printf("dp %d\n", dpSize);
     }*/
-    if(model.size()%100==0&&model.size()>modelSize){
+    /*if(model.size()%100==0&&model.size()>modelSize){
         modelSize=model.size();
         printf("model %d\n", modelSize);
-    }
+    }*/
     GameScore ret;
     PokerCard choice;
     if(now.nextPlayer.size()==1&&now.matePlayer.size()==1&&now.previousPlayer.size()==1&&now.selfPlayer.size()==1){
@@ -342,14 +356,25 @@ GameScore solve(Situation now)
             }
         }
         PokerCard bestCard;
+        bool allLose=0;
         if(follow==1){
             int battleResult=battle(now.nextCard, now.mateCard, now.previousCard);
             if(battleResult==1) bestCard=now.nextCard;
             else if(battleResult==2) bestCard=now.mateCard;
             else bestCard=now.previousCard;
+            allLose=!canWin(now.selfPlayer, bestCard);
+            if(allLose){
+                for(int i=0;i<now.selfPlayer.size();i++){
+                    if(now.selfPlayer[i].color!=now.nextCard.color) continue;
+                    if(battle(now.selfPlayer[i], bestCard)==2) bestCard=now.selfPlayer[i];
+                }
+            }
         }
+        if(deep<8) printf("%3d ", 0);
         for(int i=0;i<now.selfPlayer.size();i++){
+            if(deep<8) printf("\b\b\b\b%3d ", i);
             if(follow==1&&now.selfPlayer[i].color!=now.nextCard.color) continue;
+            if(allLose==1&&now.selfPlayer[i]!=bestCard) continue;
             Situation nextSit=sit;
             int battleResult=battle(now.nextCard, now.mateCard, now.previousCard, now.selfPlayer[i]);
             if(battleResult==1){//next win
@@ -358,7 +383,7 @@ GameScore solve(Situation now)
                 nextSit.matePlayer=now.previousPlayer;
                 nextSit.previousPlayer=now.selfPlayer;
                 nextSit.previousPlayer.erase(nextSit.previousPlayer.begin()+i);
-                GameScore gs=solve(nextSit);
+                GameScore gs=solve(nextSit, deep+1);
                 gs.scoreWe++;
                 if(gs.scoreThey>ret.scoreThey){
                     ret=gs;
@@ -371,7 +396,7 @@ GameScore solve(Situation now)
                 nextSit.matePlayer=now.selfPlayer;
                 nextSit.previousPlayer=now.nextPlayer;
                 nextSit.matePlayer.erase(nextSit.matePlayer.begin()+i);
-                GameScore gs=solve(nextSit);
+                GameScore gs=solve(nextSit, deep+1);
                 int tmp=gs.scoreWe;
                 gs.scoreWe=gs.scoreThey;
                 gs.scoreThey=tmp;
@@ -387,7 +412,7 @@ GameScore solve(Situation now)
                 nextSit.matePlayer=now.nextPlayer;
                 nextSit.previousPlayer=now.matePlayer;
                 nextSit.nextPlayer.erase(nextSit.nextPlayer.begin()+i);
-                GameScore gs=solve(nextSit);
+                GameScore gs=solve(nextSit, deep+1);
                 gs.scoreWe++;
                 if(gs.scoreThey>ret.scoreThey){
                     ret=gs;
@@ -400,7 +425,7 @@ GameScore solve(Situation now)
                 nextSit.matePlayer=now.matePlayer;
                 nextSit.previousPlayer=now.previousPlayer;
                 nextSit.selfPlayer.erase(nextSit.selfPlayer.begin()+i);
-                GameScore gs=solve(nextSit);
+                GameScore gs=solve(nextSit, deep+1);
                 int tmp=gs.scoreWe;
                 gs.scoreWe=gs.scoreThey;
                 gs.scoreThey=tmp;
@@ -411,6 +436,7 @@ GameScore solve(Situation now)
                 }
             }
         }
+        if(deep<8) printf("\b\b\b\b");
         int tmp=ret.scoreWe;
         ret.scoreWe=ret.scoreThey;
         ret.scoreThey=tmp;
@@ -438,16 +464,19 @@ GameScore solve(Situation now)
         sit.existCard=1;
         sit.nextCard=noneCard;
         sit.mateCard=noneCard;
+        if(deep<8) printf("%3d ", 0);
         for(int i=0;i<now.selfPlayer.size();i++){
+            if(deep<8) printf("\b\b\b\b%3d ", i);
             Situation nextSit=sit;
             nextSit.previousCard=nextSit.previousPlayer[i];
             nextSit.previousPlayer.erase(nextSit.previousPlayer.begin()+i);
-            GameScore gs=solve(nextSit);
+            GameScore gs=solve(nextSit, deep+1);
             if(gs.scoreThey>ret.scoreThey){
                 ret=gs;
                 choice=now.selfPlayer[i];
             }
         }
+        if(deep<8) printf("\b\b\b\b");
     }
     else if(now.existCard==1){
         sit.existCard=2;
@@ -460,17 +489,32 @@ GameScore solve(Situation now)
                 break;
             }
         }
+        PokerCard bestCard=now.previousCard;
+        bool allLose=0;
+        if(follow==1){
+            allLose=!canWin(now.selfPlayer, bestCard);
+            if(allLose){
+                for(int i=0;i<now.selfPlayer.size();i++){
+                    if(now.selfPlayer[i].color!=now.previousCard.color) continue;
+                    if(battle(now.selfPlayer[i], bestCard)==2) bestCard=now.selfPlayer[i];
+                }
+            }
+        }
+        if(deep<8) printf("%3d ", 0);
         for(int i=0;i<now.selfPlayer.size();i++){
             if(follow==1&&now.selfPlayer[i].color!=now.previousCard.color) continue;
+            if(allLose==1&&now.selfPlayer[i]!=bestCard) continue;
+            if(deep<8) printf("\b\b\b\b%3d ", i);
             Situation nextSit=sit;
             nextSit.previousCard=nextSit.previousPlayer[i];
             nextSit.previousPlayer.erase(nextSit.previousPlayer.begin()+i);
-            GameScore gs=solve(nextSit);
+            GameScore gs=solve(nextSit, deep+1);
             if(gs.scoreThey>ret.scoreThey){
                 ret=gs;
                 choice=now.selfPlayer[i];
             }
         }
+        if(deep<8) printf("\b\b\b\b");
     }
     else if(now.existCard==2){
         sit.existCard=3;
@@ -483,17 +527,35 @@ GameScore solve(Situation now)
                 break;
             }
         }
+        PokerCard bestCard;
+        bool allLose=0;
+        if(follow==1){
+            int battleResult=battle(now.mateCard, now.previousCard);
+            if(battleResult==1) bestCard=now.mateCard;
+            else if(battleResult==2) bestCard=now.previousCard;
+            allLose=!canWin(now.selfPlayer, bestCard);
+            if(allLose){
+                for(int i=0;i<now.selfPlayer.size();i++){
+                    if(now.selfPlayer[i].color!=now.mateCard.color) continue;
+                    if(battle(now.selfPlayer[i], bestCard)==2) bestCard=now.selfPlayer[i];
+                }
+            }
+        }
+        if(deep<8) printf("%3d ", 0);
         for(int i=0;i<now.selfPlayer.size();i++){
             if(follow==1&&now.selfPlayer[i].color!=now.mateCard.color) continue;
+            if(allLose==1&&now.selfPlayer[i]!=bestCard) continue;
+            if(deep<8) printf("\b\b\b\b%3d ", i);
             Situation nextSit=sit;
             nextSit.previousCard=nextSit.previousPlayer[i];
             nextSit.previousPlayer.erase(nextSit.previousPlayer.begin()+i);
-            GameScore gs=solve(nextSit);
+            GameScore gs=solve(nextSit, deep+1);
             if(gs.scoreThey>ret.scoreThey){
                 ret=gs;
                 choice=now.selfPlayer[i];
             }
         }
+        if(deep<8) printf("\b\b\b\b");
     }
     int tmp=ret.scoreWe;
     ret.scoreWe=ret.scoreThey;
@@ -540,7 +602,6 @@ int main()
     char colorStr[10];
     char kingStr[10];
     int pointInt;
-    int cardNum;
     printf("cardNum: ");
     scanf("%d", &cardNum);
     printf("kingColor: ");
@@ -574,7 +635,8 @@ int main()
         pc.point=pointInt;
         newSit.previousPlayer.push_back(pc);
     }
-    GameScore gs=solve(newSit);
+    printf("%3d ", 0);
+    GameScore gs=solve(newSit, 0);
     printf("model finally %d\n", model.size());
     printf("%d %d\n", gs.scoreWe, gs.scoreThey);
     print(newSit);
