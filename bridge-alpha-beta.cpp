@@ -2,8 +2,12 @@
 #include <cstring>
 #include <vector>
 #include <map>
+#include <set>
 
 using namespace std;
+
+int modelSize=0;
+int dpSize=0;
 
 struct PokerCard
 {
@@ -50,6 +54,44 @@ struct PokerCard
 };
 
 char kingColor;
+
+int battle(PokerCard p1, PokerCard p2)
+{
+    int ret=1;
+    PokerCard bestCard=p1;
+    if(p2.color==kingColor&&bestCard.color!=kingColor){
+        ret=2;
+        bestCard=p2;
+    }
+    else if(p2.color==bestCard.color&&p2.point>bestCard.point){
+        ret=2;
+        bestCard=p2;
+    }
+    return ret;
+}
+
+int battle(PokerCard p1, PokerCard p2, PokerCard p3)
+{
+    int ret=1;
+    PokerCard bestCard=p1;
+    if(p2.color==kingColor&&bestCard.color!=kingColor){
+        ret=2;
+        bestCard=p2;
+    }
+    else if(p2.color==bestCard.color&&p2.point>bestCard.point){
+        ret=2;
+        bestCard=p2;
+    }
+    if(p3.color==kingColor&&bestCard.color!=kingColor){
+        ret=3;
+        bestCard=p3;
+    }
+    else if(p3.color==bestCard.color&&p3.point>bestCard.point){
+        ret=3;
+        bestCard=p3;
+    }
+    return ret;
+}
 
 int battle(PokerCard p1, PokerCard p2, PokerCard p3, PokerCard p4)
 {
@@ -204,7 +246,7 @@ struct Situation
             printf("mate card: ");
             mateCard.print();
             printf("previous card: ");
-            mateCard.print();
+            previousCard.print();
         }
         if(lite){
             printf("%d %d %d %d\n", selfPlayer.size(), nextPlayer.size(), matePlayer.size(), previousPlayer.size());
@@ -231,11 +273,44 @@ struct Situation
 
 map<Situation, GameScore> dp;
 map<Situation, PokerCard> model;
+map<Situation, int> modelCnt;
+
+void erase(Situation badSit)
+{
+    if(model.find(badSit)==model.end()) return;
+    Situation nextSit=badSit;
+    nextSit.NextStep(model[badSit]);
+    if(modelCnt.find(badSit)==modelCnt.end()) printf("QQQQQQQQQQQQQQQQQQQQQQQQQQ\n");
+    modelCnt[badSit]--;
+    if(modelCnt[badSit]<=0){
+        model.erase(badSit);
+        modelCnt.erase(badSit);
+    }
+    erase(nextSit);
+}
+
+void keep(Situation now)
+{
+    modelCnt[now]++;
+    if(model.find(now)==model.end()) return;
+    now.NextStep(model[now]);
+    keep(now);
+}
 
 GameScore solve(Situation now)
 {
     if(dp.find(now)!=dp.end()){
+        //if(now.selfPlayer.size()>3)printf("find %d %d %d %d\n", now.selfPlayer.size(), now.nextPlayer.size(), now.matePlayer.size(), now.previousPlayer.size());
+        keep(now);
         return dp[now];
+    }
+    /*if(dp.size()%1000==0&&dp.size()>dpSize){
+        dpSize=dp.size();
+        printf("dp %d\n", dpSize);
+    }*/
+    if(model.size()%100==0&&model.size()>modelSize){
+        modelSize=model.size();
+        printf("model %d\n", modelSize);
     }
     GameScore ret;
     PokerCard choice;
@@ -265,6 +340,13 @@ GameScore solve(Situation now)
                 follow=1;
                 break;
             }
+        }
+        PokerCard bestCard;
+        if(follow==1){
+            int battleResult=battle(now.nextCard, now.mateCard, now.previousCard);
+            if(battleResult==1) bestCard=now.nextCard;
+            else if(battleResult==2) bestCard=now.mateCard;
+            else bestCard=now.previousCard;
         }
         for(int i=0;i<now.selfPlayer.size();i++){
             if(follow==1&&now.selfPlayer[i].color!=now.nextCard.color) continue;
@@ -333,13 +415,19 @@ GameScore solve(Situation now)
         ret.scoreWe=ret.scoreThey;
         ret.scoreThey=tmp;
         model[now]=choice;
+        modelCnt[now]=1;
         if(now.existCard==0) dp[now]=ret;
+        //printf("model %d\n", model.size());
+        //printf("model %d ", model.size());
         for(int i=0;i<now.selfPlayer.size();i++){
             if(now.selfPlayer[i]==choice) continue;
             Situation badSit=now;
             badSit.NextStep(now.selfPlayer[i]);
-            if(model.find(badSit)!=model.end()) model.erase(badSit);
+            erase(badSit);
+            //printf("erase\n");
         }
+        //printf("finally model %d\n", model.size());
+        //printf("%d\n", model.size());
         return ret;
     }
     sit.selfPlayer=now.nextPlayer;
@@ -412,12 +500,18 @@ GameScore solve(Situation now)
     ret.scoreThey=tmp;
     if(now.existCard==0) dp[now]=ret;
     model[now]=choice;
+    modelCnt[now]=1;
+    //printf("model %d\n", model.size());
     for(int i=0;i<now.selfPlayer.size();i++){
         if(now.selfPlayer[i]==choice) continue;
         Situation badSit=now;
         badSit.NextStep(now.selfPlayer[i]);
-        if(model.find(badSit)!=model.end()) model.erase(badSit);
+        if(model.find(badSit)!=model.end()){
+            erase(badSit);
+            //printf("erase\n");
+        }
     }
+    //printf("finally model %d\n", model.size());
     return ret;
 }
 
@@ -481,6 +575,7 @@ int main()
         newSit.previousPlayer.push_back(pc);
     }
     GameScore gs=solve(newSit);
+    printf("model finally %d\n", model.size());
     printf("%d %d\n", gs.scoreWe, gs.scoreThey);
     print(newSit);
     return 0;
