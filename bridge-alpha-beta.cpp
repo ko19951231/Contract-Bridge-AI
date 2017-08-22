@@ -290,10 +290,10 @@ struct Situation
 
 map<Situation, GameScore> dp;
 
-bool canWin(vector<PokerCard> pcVec, PokerCard pc)
+bool canWin(vector<PokerCard> pcVec, PokerCard pc, char followColor)
 {
     for(int i=0;i<pcVec.size();i++){
-        if(pcVec[i].color!=pc.color) continue;
+        if(pcVec[i].color!=followColor) continue;
         if(battle(pc, pcVec[i])==2){
             return 1;
         }
@@ -301,10 +301,10 @@ bool canWin(vector<PokerCard> pcVec, PokerCard pc)
     return 0;
 }
 
-bool canLose(vector<PokerCard> pcVec, PokerCard pc)
+bool canLose(vector<PokerCard> pcVec, PokerCard pc, char followColor)
 {
     for(int i=0;i<pcVec.size();i++){
-        if(pcVec[i].color!=pc.color) continue;
+        if(pcVec[i].color!=followColor) continue;
         if(battle(pc, pcVec[i])==1){
             return 1;
         }
@@ -334,7 +334,6 @@ GameScore solve(Situation now, int deep)
         return dp[now];
     }
     GameScore ret;
-    PokerCard choice;
     //the last round, directly return the battle result
     if(now.nextPlayer.size()==1&&now.matePlayer.size()==1&&now.previousPlayer.size()==1&&now.selfPlayer.size()==1){
         int battleResult=battle(now.selfPlayer[0], now.nextPlayer[0], now.matePlayer[0], now.previousPlayer[0]);
@@ -361,10 +360,10 @@ GameScore solve(Situation now, int deep)
             if(battleResult==1) bestCard=now.nextCard;
             else if(battleResult==2) bestCard=now.mateCard;
             else bestCard=now.previousCard;
-            allLose=!canWin(now.selfPlayer, bestCard);
+            allLose=!canWin(now.selfPlayer, bestCard, now.nextCard.color);
             if(allLose) bestCard=FirstSameColorCard(now.selfPlayer, now.nextCard);
             else{
-                allWin=!canLose(now.selfPlayer, bestCard);
+                allWin=!canLose(now.selfPlayer, bestCard, now.nextCard.color);
                 if(allWin) bestCard=FirstSameColorCard(now.selfPlayer, now.nextCard);
             }
         }
@@ -414,7 +413,7 @@ GameScore solve(Situation now, int deep)
         PokerCard bestCard=now.previousCard;
         bool allLose=0;
         if(follow>1){
-            allLose=!canWin(now.selfPlayer, bestCard);
+            allLose=!canWin(now.selfPlayer, bestCard, now.previousCard.color);
             if(allLose) bestCard=FirstSameColorCard(now.selfPlayer, now.previousCard);
         }
         if(deep<8) printf("%3d ", 0);
@@ -443,7 +442,7 @@ GameScore solve(Situation now, int deep)
             int battleResult=battle(now.mateCard, now.previousCard);
             if(battleResult==1) bestCard=now.mateCard;
             else if(battleResult==2) bestCard=now.previousCard;
-            allLose=!canWin(now.selfPlayer, bestCard);
+            allLose=!canWin(now.selfPlayer, bestCard, now.mateCard.color);
             if(allLose) bestCard=FirstSameColorCard(now.selfPlayer, now.mateCard);
         }
         if(deep<8) printf("%3d ", 0);
@@ -494,10 +493,10 @@ void print(Situation now)
             if(battleResult==1) bestCard=now.nextCard;
             else if(battleResult==2) bestCard=now.mateCard;
             else bestCard=now.previousCard;
-            allLose=!canWin(now.selfPlayer, bestCard);
+            allLose=!canWin(now.selfPlayer, bestCard, now.nextCard.color);
             if(allLose) bestCard=FirstSameColorCard(now.selfPlayer, now.nextCard);
             else{
-                allWin=!canLose(now.selfPlayer, bestCard);
+                allWin=!canLose(now.selfPlayer, bestCard, now.nextCard.color);
                 if(allWin) bestCard=FirstSameColorCard(now.selfPlayer, now.nextCard);
             }
         }
@@ -542,7 +541,7 @@ void print(Situation now)
         PokerCard bestCard=now.previousCard;
         bool allLose=0;
         if(follow>1){
-            allLose=!canWin(now.selfPlayer, bestCard);
+            allLose=!canWin(now.selfPlayer, bestCard, now.previousCard.color);
             if(allLose) bestCard=FirstSameColorCard(now.selfPlayer, now.previousCard);
         }
         for(int i=0;i<now.selfPlayer.size();i++){
@@ -569,7 +568,7 @@ void print(Situation now)
             int battleResult=battle(now.mateCard, now.previousCard);
             if(battleResult==1) bestCard=now.mateCard;
             else if(battleResult==2) bestCard=now.previousCard;
-            allLose=!canWin(now.selfPlayer, bestCard);
+            allLose=!canWin(now.selfPlayer, bestCard, now.mateCard.color);
             if(allLose) bestCard=FirstSameColorCard(now.selfPlayer, now.mateCard);
         }
         for(int i=0;i<now.selfPlayer.size();i++){
