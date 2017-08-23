@@ -10,6 +10,7 @@ using namespace std;
 int modelSize=0;
 int dpSize=0;
 int cardNum;
+int stopPoint;
 
 struct PokerCard
 {
@@ -66,6 +67,7 @@ struct PokerCard
 };
 
 char kingColor;
+char colorSet[4]={'c', 'd', 'h', 's'};
 
 int battle(PokerCard p1, PokerCard p2)
 {
@@ -328,11 +330,12 @@ PokerCard FirstSameColorCard(vector<PokerCard> pcVec, PokerCard pc)
     }
 }
 
-GameScore solve(Situation now, int deep)
+GameScore solve(Situation now, int deep, bool printProg)
 {
     if(dp.find(now)!=dp.end()){
         return dp[now];
     }
+    if(deep>=8) printProg=0;
     GameScore ret;
     //the last round, directly return the battle result
     if(now.nextPlayer.size()==1&&now.matePlayer.size()==1&&now.previousPlayer.size()==1&&now.selfPlayer.size()==1){
@@ -367,16 +370,18 @@ GameScore solve(Situation now, int deep)
                 if(allWin) bestCard=FirstSameColorCard(now.selfPlayer, now.nextCard);
             }
         }
-        if(deep<8) printf("%3d ", 0);
+        if(printProg) printf("%3d ", 0);
         for(int i=0;i<now.selfPlayer.size();i++){
             if(follow&&now.selfPlayer[i].color!=now.nextCard.color) continue;
             if(allLose&&now.selfPlayer[i]!=bestCard) continue;
             if(allWin&&now.selfPlayer[i]!=bestCard) continue;
-            if(deep<8) printf("\b\b\b\b%3d ", i);
+            if(printProg) printf("\b\b\b\b%3d ", i);
             Situation nextSit=now;
             nextSit.NextStep(nextSit.selfPlayer[i]);
             bool theirTerm=changeBridge;
-            GameScore gs=solve(nextSit, deep+1);
+            GameScore gs;
+            if(deep+1<stopPoint) gs=solve(nextSit, deep+1, printProg);
+            else gs.scoreThey=gs.scoreWe=0;
             if(theirTerm){
                 if(gs.scoreThey>ret.scoreWe){
                     ret.scoreWe=gs.scoreThey;
@@ -390,22 +395,22 @@ GameScore solve(Situation now, int deep)
                 }
             }
         }
-        if(deep<8) printf("\b\b\b\b");
+        if(printProg) printf("\b\b\b\b");
         return ret;
     }
     if(now.existCard==0){
-        if(deep<8) printf("%3d ", 0);
+        if(printProg) printf("%3d ", 0);
         for(int i=0;i<now.selfPlayer.size();i++){
-            if(deep<8) printf("\b\b\b\b%3d ", i);
+            if(printProg) printf("\b\b\b\b%3d ", i);
             Situation nextSit=now;
             nextSit.NextStep(nextSit.selfPlayer[i]);
-            GameScore gs=solve(nextSit, deep+1);
+            GameScore gs=solve(nextSit, deep+1, printProg);
             if(gs.scoreThey>ret.scoreWe){
                 ret.scoreWe=gs.scoreThey;
                 ret.scoreThey=gs.scoreWe;
             }
         }
-        if(deep<8) printf("\b\b\b\b");
+        if(printProg) printf("\b\b\b\b");
         dp[now]=ret;
     }
     else if(now.existCard==1){
@@ -416,20 +421,20 @@ GameScore solve(Situation now, int deep)
             allLose=!canWin(now.selfPlayer, bestCard, now.previousCard.color);
             if(allLose) bestCard=FirstSameColorCard(now.selfPlayer, now.previousCard);
         }
-        if(deep<8) printf("%3d ", 0);
+        if(printProg) printf("%3d ", 0);
         for(int i=0;i<now.selfPlayer.size();i++){
             if(follow&&now.selfPlayer[i].color!=now.previousCard.color) continue;
             if(allLose&&now.selfPlayer[i]!=bestCard) continue;
-            if(deep<8) printf("\b\b\b\b%3d ", i);
+            if(printProg) printf("\b\b\b\b%3d ", i);
             Situation nextSit=now;
             nextSit.NextStep(nextSit.selfPlayer[i]);
-            GameScore gs=solve(nextSit, deep+1);
+            GameScore gs=solve(nextSit, deep+1, printProg);
             if(gs.scoreThey>ret.scoreWe){
                 ret.scoreWe=gs.scoreThey;
                 ret.scoreThey=gs.scoreWe;
             }
         }
-        if(deep<8) printf("\b\b\b\b");
+        if(printProg) printf("\b\b\b\b");
     }
     else if(now.existCard==2){
         sit.existCard=3;
@@ -445,26 +450,27 @@ GameScore solve(Situation now, int deep)
             allLose=!canWin(now.selfPlayer, bestCard, now.mateCard.color);
             if(allLose) bestCard=FirstSameColorCard(now.selfPlayer, now.mateCard);
         }
-        if(deep<8) printf("%3d ", 0);
+        if(printProg) printf("%3d ", 0);
         for(int i=0;i<now.selfPlayer.size();i++){
             if(follow&&now.selfPlayer[i].color!=now.mateCard.color) continue;
             if(allLose&&now.selfPlayer[i]!=bestCard) continue;
-            if(deep<8) printf("\b\b\b\b%3d ", i);
+            if(printProg) printf("\b\b\b\b%3d ", i);
             Situation nextSit=now;
             nextSit.NextStep(nextSit.selfPlayer[i]);
-            GameScore gs=solve(nextSit, deep+1);
+            GameScore gs=solve(nextSit, deep+1, printProg);
             if(gs.scoreThey>ret.scoreWe){
                 ret.scoreWe=gs.scoreThey;
                 ret.scoreThey=gs.scoreWe;
             }
         }
-        if(deep<8) printf("\b\b\b\b");
+        if(printProg) printf("\b\b\b\b");
     }
     return ret;
 }
 
-void print(Situation now)
+void print(Situation now, int deep)
 {
+    if(deep==stopPoint) return;
     GameScore ret;
     PokerCard choice;
     //the last round, directly return the battle result
@@ -507,7 +513,7 @@ void print(Situation now)
             Situation nextSit=now;
             nextSit.NextStep(nextSit.selfPlayer[i]);
             bool theirTerm=changeBridge;
-            GameScore gs=solve(nextSit, 8);
+            GameScore gs=solve(nextSit, deep+1, 0);
             if(theirTerm){
                 if(gs.scoreThey>ret.scoreWe){
                     ret.scoreWe=gs.scoreThey;
@@ -528,7 +534,7 @@ void print(Situation now)
         for(int i=0;i<now.selfPlayer.size();i++){
             Situation nextSit=now;
             nextSit.NextStep(nextSit.selfPlayer[i]);
-            GameScore gs=solve(nextSit, 8);
+            GameScore gs=solve(nextSit, deep+1, 0);
             if(gs.scoreThey>ret.scoreWe){
                 ret.scoreWe=gs.scoreThey;
                 ret.scoreThey=gs.scoreWe;
@@ -549,7 +555,7 @@ void print(Situation now)
             if(allLose&&now.selfPlayer[i]!=bestCard) continue;
             Situation nextSit=now;
             nextSit.NextStep(nextSit.selfPlayer[i]);
-            GameScore gs=solve(nextSit, 8);
+            GameScore gs=solve(nextSit, deep+1, 0);
             if(gs.scoreThey>ret.scoreWe){
                 ret.scoreWe=gs.scoreThey;
                 ret.scoreThey=gs.scoreWe;
@@ -576,7 +582,7 @@ void print(Situation now)
             if(allLose&&now.selfPlayer[i]!=bestCard) continue;
             Situation nextSit=now;
             nextSit.NextStep(nextSit.selfPlayer[i]);
-            GameScore gs=solve(nextSit, 8);
+            GameScore gs=solve(nextSit, deep+1, 0);
             if(gs.scoreThey>ret.scoreWe){
                 ret.scoreWe=gs.scoreThey;
                 ret.scoreThey=gs.scoreWe;
@@ -585,8 +591,9 @@ void print(Situation now)
         }
     }
     choice.print();
+    printf("%d %d\n", ret.scoreWe, ret.scoreThey);
     now.NextStep(choice);
-    print(now);
+    print(now, deep+1);
 }
 
 int main()
@@ -640,8 +647,9 @@ int main()
     }
     sort(newSit.previousPlayer.begin(), newSit.previousPlayer.end());
     newSit.print(0);
-    GameScore gs=solve(newSit, 0);
+    stopPoint=16;
+    GameScore gs=solve(newSit, 0, 1);
     printf("%d %d\n", gs.scoreWe, gs.scoreThey);
-    print(newSit);
+    print(newSit, 0);
     return 0;
 }
