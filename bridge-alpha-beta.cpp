@@ -68,6 +68,7 @@ struct PokerCard
 
 char kingColor;
 char colorSet[4]={'c', 'd', 'h', 's'};
+PokerCard noneCard;
 
 int battle(PokerCard p1, PokerCard p2)
 {
@@ -199,9 +200,6 @@ struct Situation
         if(existCard==3){
             changeBridge=0;
             int battleResult=battle(nextCard, mateCard, previousCard, pc);
-            PokerCard noneCard;
-            noneCard.color=0;
-            noneCard.point=0;
             nextCard=noneCard;
             mateCard=noneCard;
             previousCard=noneCard;
@@ -323,11 +321,12 @@ int canFollow(vector<PokerCard> pcVec, PokerCard pc)
     return ret;
 }
 
-PokerCard FirstSameColorCard(vector<PokerCard> pcVec, PokerCard pc)
+PokerCard FirstSameColorCard(vector<PokerCard> pcVec, char followColor)
 {
     for(int i=0;i<pcVec.size();i++){
-        if(pcVec[i].color==pc.color) return pcVec[i];
+        if(pcVec[i].color==followColor) return pcVec[i];
     }
+    return noneCard;
 }
 
 GameScore solve(Situation now, int deep, bool printProg)
@@ -350,31 +349,36 @@ GameScore solve(Situation now, int deep, bool printProg)
     ret.scoreWe=-1;
     ret.scoreThey=-1;
     Situation sit;
-    PokerCard noneCard;
-    noneCard.color=0;
-    noneCard.point=0;
     if(now.existCard==3){
         int follow=canFollow(now.selfPlayer, now.nextCard);
+        set<PokerCard> trySet;
         PokerCard bestCard;
         bool allLose=0;
         bool allWin=0;
+        int battleResult=battle(now.nextCard, now.mateCard, now.previousCard);
+        if(battleResult==1) bestCard=now.nextCard;
+        else if(battleResult==2) bestCard=now.mateCard;
+        else bestCard=now.previousCard;
         if(follow>1){
-            int battleResult=battle(now.nextCard, now.mateCard, now.previousCard);
-            if(battleResult==1) bestCard=now.nextCard;
-            else if(battleResult==2) bestCard=now.mateCard;
-            else bestCard=now.previousCard;
             allLose=!canWin(now.selfPlayer, bestCard, now.nextCard.color);
-            if(allLose) bestCard=FirstSameColorCard(now.selfPlayer, now.nextCard);
+            if(allLose) trySet.insert(FirstSameColorCard(now.selfPlayer, now.nextCard.color));
             else{
                 allWin=!canLose(now.selfPlayer, bestCard, now.nextCard.color);
-                if(allWin) bestCard=FirstSameColorCard(now.selfPlayer, now.nextCard);
+                if(allWin) trySet.insert(FirstSameColorCard(now.selfPlayer, now.nextCard.color));
+            }
+        }
+        else if(follow==0){
+            for(int i=0;i<4;i++){
+                allLose=!canWin(now.selfPlayer, bestCard, colorSet[i]);
+                if(allLose) trySet.insert(FirstSameColorCard(now.selfPlayer, colorSet[i]));
             }
         }
         if(printProg) printf("%3d ", 0);
         for(int i=0;i<now.selfPlayer.size();i++){
+            if(follow==0&&now.selfPlayer[i].color!=kingColor&&trySet.find(now.selfPlayer[i])==trySet.end()) continue;
             if(follow&&now.selfPlayer[i].color!=now.nextCard.color) continue;
-            if(allLose&&now.selfPlayer[i]!=bestCard) continue;
-            if(allWin&&now.selfPlayer[i]!=bestCard) continue;
+            if(allLose&trySet.find(now.selfPlayer[i])==trySet.end()) continue;
+            if(allWin&&trySet.find(now.selfPlayer[i])==trySet.end()) continue;
             if(printProg) printf("\b\b\b\b%3d ", i);
             Situation nextSit=now;
             nextSit.NextStep(nextSit.selfPlayer[i]);
@@ -416,15 +420,23 @@ GameScore solve(Situation now, int deep, bool printProg)
     else if(now.existCard==1){
         int follow=canFollow(now.selfPlayer, now.previousCard);
         PokerCard bestCard=now.previousCard;
+        set<PokerCard> trySet;
         bool allLose=0;
         if(follow>1){
             allLose=!canWin(now.selfPlayer, bestCard, now.previousCard.color);
-            if(allLose) bestCard=FirstSameColorCard(now.selfPlayer, now.previousCard);
+            if(allLose) trySet.insert(FirstSameColorCard(now.selfPlayer, now.previousCard.color));
+        }
+        else if(follow==0){
+            for(int i=0;i<4;i++){
+                allLose=!canWin(now.selfPlayer, bestCard, colorSet[i]);
+                if(allLose) trySet.insert(FirstSameColorCard(now.selfPlayer, colorSet[i]));
+            }
         }
         if(printProg) printf("%3d ", 0);
         for(int i=0;i<now.selfPlayer.size();i++){
+            if(follow==0&&now.selfPlayer[i].color!=kingColor&&trySet.find(now.selfPlayer[i])==trySet.end()) continue;
             if(follow&&now.selfPlayer[i].color!=now.previousCard.color) continue;
-            if(allLose&&now.selfPlayer[i]!=bestCard) continue;
+            if(allLose&&trySet.find(now.selfPlayer[i])==trySet.end()) continue;
             if(printProg) printf("\b\b\b\b%3d ", i);
             Situation nextSit=now;
             nextSit.NextStep(nextSit.selfPlayer[i]);
@@ -442,18 +454,26 @@ GameScore solve(Situation now, int deep, bool printProg)
         sit.mateCard=now.previousCard;
         int follow=canFollow(now.selfPlayer, now.mateCard);
         PokerCard bestCard;
+        set<PokerCard> trySet;
+        int battleResult=battle(now.mateCard, now.previousCard);
+        if(battleResult==1) bestCard=now.mateCard;
+        else if(battleResult==2) bestCard=now.previousCard;
         bool allLose=0;
         if(follow>1){
-            int battleResult=battle(now.mateCard, now.previousCard);
-            if(battleResult==1) bestCard=now.mateCard;
-            else if(battleResult==2) bestCard=now.previousCard;
             allLose=!canWin(now.selfPlayer, bestCard, now.mateCard.color);
-            if(allLose) bestCard=FirstSameColorCard(now.selfPlayer, now.mateCard);
+            if(allLose) trySet.insert(FirstSameColorCard(now.selfPlayer, now.mateCard.color));
+        }
+        else if(follow==0){
+            for(int i=0;i<4;i++){
+                allLose=!canWin(now.selfPlayer, bestCard, colorSet[i]);
+                if(allLose) trySet.insert(FirstSameColorCard(now.selfPlayer, colorSet[i]));
+            }
         }
         if(printProg) printf("%3d ", 0);
         for(int i=0;i<now.selfPlayer.size();i++){
+             if(follow==0&&now.selfPlayer[i].color!=kingColor&&trySet.find(now.selfPlayer[i])==trySet.end()) continue;
             if(follow&&now.selfPlayer[i].color!=now.mateCard.color) continue;
-            if(allLose&&now.selfPlayer[i]!=bestCard) continue;
+            if(allLose&&trySet.find(now.selfPlayer[i])==trySet.end()) continue;
             if(printProg) printf("\b\b\b\b%3d ", i);
             Situation nextSit=now;
             nextSit.NextStep(nextSit.selfPlayer[i]);
@@ -486,30 +506,35 @@ void print(Situation now, int deep)
     ret.scoreWe=-1;
     ret.scoreThey=-1;
     Situation sit;
-    PokerCard noneCard;
-    noneCard.color=0;
-    noneCard.point=0;
     if(now.existCard==3){
         int follow=canFollow(now.selfPlayer, now.nextCard);
+        set<PokerCard> trySet;
         PokerCard bestCard;
         bool allLose=0;
         bool allWin=0;
+        int battleResult=battle(now.nextCard, now.mateCard, now.previousCard);
+        if(battleResult==1) bestCard=now.nextCard;
+        else if(battleResult==2) bestCard=now.mateCard;
+        else bestCard=now.previousCard;
         if(follow>1){
-            int battleResult=battle(now.nextCard, now.mateCard, now.previousCard);
-            if(battleResult==1) bestCard=now.nextCard;
-            else if(battleResult==2) bestCard=now.mateCard;
-            else bestCard=now.previousCard;
             allLose=!canWin(now.selfPlayer, bestCard, now.nextCard.color);
-            if(allLose) bestCard=FirstSameColorCard(now.selfPlayer, now.nextCard);
+            if(allLose) trySet.insert(FirstSameColorCard(now.selfPlayer, now.nextCard.color));
             else{
                 allWin=!canLose(now.selfPlayer, bestCard, now.nextCard.color);
-                if(allWin) bestCard=FirstSameColorCard(now.selfPlayer, now.nextCard);
+                if(allWin) trySet.insert(FirstSameColorCard(now.selfPlayer, now.nextCard.color));
+            }
+        }
+        else if(follow==0){
+            for(int i=0;i<4;i++){
+                allLose=!canWin(now.selfPlayer, bestCard, colorSet[i]);
+                if(allLose) trySet.insert(FirstSameColorCard(now.selfPlayer, colorSet[i]));
             }
         }
         for(int i=0;i<now.selfPlayer.size();i++){
+            if(follow==0&&now.selfPlayer[i].color!=kingColor&&trySet.find(now.selfPlayer[i])==trySet.end()) continue;
             if(follow&&now.selfPlayer[i].color!=now.nextCard.color) continue;
-            if(allLose&&now.selfPlayer[i]!=bestCard) continue;
-            if(allWin&&now.selfPlayer[i]!=bestCard) continue;
+            if(allLose&trySet.find(now.selfPlayer[i])==trySet.end()) continue;
+            if(allWin&&trySet.find(now.selfPlayer[i])==trySet.end()) continue;
             Situation nextSit=now;
             nextSit.NextStep(nextSit.selfPlayer[i]);
             bool theirTerm=changeBridge;
@@ -545,14 +570,22 @@ void print(Situation now, int deep)
     else if(now.existCard==1){
         int follow=canFollow(now.selfPlayer, now.previousCard);
         PokerCard bestCard=now.previousCard;
+        set<PokerCard> trySet;
         bool allLose=0;
         if(follow>1){
             allLose=!canWin(now.selfPlayer, bestCard, now.previousCard.color);
-            if(allLose) bestCard=FirstSameColorCard(now.selfPlayer, now.previousCard);
+            if(allLose) trySet.insert(FirstSameColorCard(now.selfPlayer, now.previousCard.color));
+        }
+        else if(follow==0){
+            for(int i=0;i<4;i++){
+                allLose=!canWin(now.selfPlayer, bestCard, colorSet[i]);
+                if(allLose) trySet.insert(FirstSameColorCard(now.selfPlayer, colorSet[i]));
+            }
         }
         for(int i=0;i<now.selfPlayer.size();i++){
+            if(follow==0&&now.selfPlayer[i].color!=kingColor&&trySet.find(now.selfPlayer[i])==trySet.end()) continue;
             if(follow&&now.selfPlayer[i].color!=now.previousCard.color) continue;
-            if(allLose&&now.selfPlayer[i]!=bestCard) continue;
+            if(allLose&&trySet.find(now.selfPlayer[i])==trySet.end()) continue;
             Situation nextSit=now;
             nextSit.NextStep(nextSit.selfPlayer[i]);
             GameScore gs=solve(nextSit, deep+1, 0);
@@ -569,17 +602,25 @@ void print(Situation now, int deep)
         sit.mateCard=now.previousCard;
         int follow=canFollow(now.selfPlayer, now.mateCard);
         PokerCard bestCard;
+        set<PokerCard> trySet;
+        int battleResult=battle(now.mateCard, now.previousCard);
+        if(battleResult==1) bestCard=now.mateCard;
+        else if(battleResult==2) bestCard=now.previousCard;
         bool allLose=0;
         if(follow>1){
-            int battleResult=battle(now.mateCard, now.previousCard);
-            if(battleResult==1) bestCard=now.mateCard;
-            else if(battleResult==2) bestCard=now.previousCard;
             allLose=!canWin(now.selfPlayer, bestCard, now.mateCard.color);
-            if(allLose) bestCard=FirstSameColorCard(now.selfPlayer, now.mateCard);
+            if(allLose) trySet.insert(FirstSameColorCard(now.selfPlayer, now.mateCard.color));
+        }
+        else if(follow==0){
+            for(int i=0;i<4;i++){
+                allLose=!canWin(now.selfPlayer, bestCard, colorSet[i]);
+                if(allLose) trySet.insert(FirstSameColorCard(now.selfPlayer, colorSet[i]));
+            }
         }
         for(int i=0;i<now.selfPlayer.size();i++){
+             if(follow==0&&now.selfPlayer[i].color!=kingColor&&trySet.find(now.selfPlayer[i])==trySet.end()) continue;
             if(follow&&now.selfPlayer[i].color!=now.mateCard.color) continue;
-            if(allLose&&now.selfPlayer[i]!=bestCard) continue;
+            if(allLose&&trySet.find(now.selfPlayer[i])==trySet.end()) continue;
             Situation nextSit=now;
             nextSit.NextStep(nextSit.selfPlayer[i]);
             GameScore gs=solve(nextSit, deep+1, 0);
@@ -598,17 +639,16 @@ void print(Situation now, int deep)
 
 int main()
 {
+    noneCard.color=noneCard.point=0;
     Situation newSit;
     newSit.existCard=0;
-    PokerCard pc;
-    pc.color=0;
-    pc.point=0;
-    newSit.previousCard=pc;
-    newSit.nextCard=pc;
-    newSit.mateCard=pc;
+    newSit.previousCard=noneCard;
+    newSit.nextCard=noneCard;
+    newSit.mateCard=noneCard;
     char colorStr[10];
     char kingStr[10];
     int pointInt;
+    PokerCard pc;
     printf("cardNum: ");
     scanf("%d", &cardNum);
     printf("kingColor: ");
@@ -647,7 +687,7 @@ int main()
     }
     sort(newSit.previousPlayer.begin(), newSit.previousPlayer.end());
     newSit.print(0);
-    stopPoint=16;
+    stopPoint=20;
     GameScore gs=solve(newSit, 0, 1);
     printf("%d %d\n", gs.scoreWe, gs.scoreThey);
     print(newSit, 0);
