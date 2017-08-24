@@ -329,7 +329,7 @@ PokerCard FirstSameColorCard(vector<PokerCard> pcVec, char followColor)
     return noneCard;
 }
 
-GameScore solve(Situation now, int deep, bool printProg, int maxThey, bool returnToThey)
+GameScore solve(Situation now, int deep, bool printProg)
 {
     if(dp.find(now)!=dp.end()){
         return dp[now];
@@ -387,7 +387,7 @@ GameScore solve(Situation now, int deep, bool printProg, int maxThey, bool retur
             nextSit.NextStep(nextSit.selfPlayer[i]);
             bool theirTerm=changeBridge;
             GameScore gs;
-            if(deep+1<stopPoint) gs=solve(nextSit, deep+1, printProg, ret.scoreWe, theirTerm);
+            if(deep+1<stopPoint) gs=solve(nextSit, deep+1, printProg);
             else gs.scoreThey=gs.scoreWe=0;
             if(theirTerm){
                 if(gs.scoreThey>ret.scoreWe){
@@ -401,7 +401,6 @@ GameScore solve(Situation now, int deep, bool printProg, int maxThey, bool retur
                     ret.scoreThey=gs.scoreThey;
                 }
             }
-            if(ret.scoreThey<=maxThey) break;
         }
         if(printProg) printf("\b\b\b\b");
         return ret;
@@ -412,12 +411,11 @@ GameScore solve(Situation now, int deep, bool printProg, int maxThey, bool retur
             if(printProg) printf("\b\b\b\b%3d ", i);
             Situation nextSit=now;
             nextSit.NextStep(nextSit.selfPlayer[i]);
-            GameScore gs=solve(nextSit, deep+1, printProg, ret.scoreWe, 1);
+            GameScore gs=solve(nextSit, deep+1, printProg);
             if(gs.scoreThey>ret.scoreWe){
                 ret.scoreWe=gs.scoreThey;
                 ret.scoreThey=gs.scoreWe;
             }
-            if(returnToThey&&ret.scoreThey<=maxThey) break;
         }
         if(printProg) printf("\b\b\b\b");
         dp[now]=ret;
@@ -449,12 +447,11 @@ GameScore solve(Situation now, int deep, bool printProg, int maxThey, bool retur
             if(printProg) printf("\b\b\b\b%3d ", i);
             Situation nextSit=now;
             nextSit.NextStep(nextSit.selfPlayer[i]);
-            GameScore gs=solve(nextSit, deep+1, printProg, ret.scoreWe, 1);
+            GameScore gs=solve(nextSit, deep+1, printProg);
             if(gs.scoreThey>ret.scoreWe){
                 ret.scoreWe=gs.scoreThey;
                 ret.scoreThey=gs.scoreWe;
             }
-            if(ret.scoreThey<=maxThey) break;
         }
         if(printProg) printf("\b\b\b\b");
     }
@@ -488,12 +485,11 @@ GameScore solve(Situation now, int deep, bool printProg, int maxThey, bool retur
             if(printProg) printf("\b\b\b\b%3d ", i);
             Situation nextSit=now;
             nextSit.NextStep(nextSit.selfPlayer[i]);
-            GameScore gs=solve(nextSit, deep+1, printProg, ret.scoreWe, 1);
+            GameScore gs=solve(nextSit, deep+1, printProg);
             if(gs.scoreThey>ret.scoreWe){
                 ret.scoreWe=gs.scoreThey;
                 ret.scoreThey=gs.scoreWe;
             }
-            if(ret.scoreThey<=maxThey) break;
         }
         if(printProg) printf("\b\b\b\b");
     }
@@ -558,7 +554,7 @@ void print(Situation now, int deep)
             Situation nextSit=now;
             nextSit.NextStep(nextSit.selfPlayer[i]);
             bool theirTerm=changeBridge;
-            GameScore gs=solve(nextSit, deep+1, 0, ret.scoreWe, theirTerm);
+            GameScore gs=solve(nextSit, deep+1, 0);
             if(theirTerm){
                 if(gs.scoreThey>ret.scoreWe){
                     ret.scoreWe=gs.scoreThey;
@@ -579,7 +575,7 @@ void print(Situation now, int deep)
         for(int i=0;i<now.selfPlayer.size();i++){
             Situation nextSit=now;
             nextSit.NextStep(nextSit.selfPlayer[i]);
-            GameScore gs=solve(nextSit, deep+1, 0, ret.scoreWe, 1);
+            GameScore gs=solve(nextSit, deep+1, 0);
             if(gs.scoreThey>ret.scoreWe){
                 ret.scoreWe=gs.scoreThey;
                 ret.scoreThey=gs.scoreWe;
@@ -612,7 +608,7 @@ void print(Situation now, int deep)
             }
             Situation nextSit=now;
             nextSit.NextStep(nextSit.selfPlayer[i]);
-            GameScore gs=solve(nextSit, deep+1, 0, ret.scoreWe, 1);
+            GameScore gs=solve(nextSit, deep+1, 0);
             if(gs.scoreThey>ret.scoreWe){
                 ret.scoreWe=gs.scoreThey;
                 ret.scoreThey=gs.scoreWe;
@@ -648,7 +644,7 @@ void print(Situation now, int deep)
             }
             Situation nextSit=now;
             nextSit.NextStep(nextSit.selfPlayer[i]);
-            GameScore gs=solve(nextSit, deep+1, 0, ret.scoreWe, 1);
+            GameScore gs=solve(nextSit, deep+1, 0);
             if(gs.scoreThey>ret.scoreWe){
                 ret.scoreWe=gs.scoreThey;
                 ret.scoreThey=gs.scoreWe;
@@ -713,7 +709,7 @@ int main()
     sort(newSit.previousPlayer.begin(), newSit.previousPlayer.end());
     newSit.print(0);
     stopPoint=24;
-    GameScore gs=solve(newSit, 0, 1, -1, 1);
+    GameScore gs=solve(newSit, 0, 1);
     printf("%d %d\n", gs.scoreWe, gs.scoreThey);
     print(newSit, 0);
     return 0;
