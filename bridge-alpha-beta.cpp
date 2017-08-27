@@ -713,7 +713,28 @@ int main()
         newSit.previousPlayer.push_back(pc);
     }
     sort(newSit.previousPlayer.begin(), newSit.previousPlayer.end());
-    newSit.print(0);
+    /*stopPoint=16;
+    GameScore gs=solve(newSit, 0, 0, -1);
+    printf("########### score %d %d ###################\n", gs.scoreWe, gs.scoreThey);
+    globalSit=newSit;
+    //print(newSit, 0, 1);
+    for(int i=0;i<16;i++){
+        if(i%4==0){
+            printf("*********************bridge %d ********************\n", i/4+1);
+            globalSit.print(0);
+        }
+        scanf("%s", colorStr);
+        if(strcmp("com", colorStr)==0){
+            print(globalSit, 0, 0);
+        }
+        else{
+            scanf("%d", &pointInt);
+            pc.color=colorStr[0];
+            pc.point=pointInt;
+            globalSit.NextStep(pc);
+        }
+    }*/
+    //newSit.print(0);
     stopPoint=16;
     GameScore gs=solve(newSit, 0, 1, -1);
     globalSit=newSit;
@@ -734,21 +755,54 @@ int main()
             globalSit.NextStep(pc);
         }
     }
-    print(newSit, 0, 1);
-    printf("===========================global sit========================\n");
+    //print(newSit, 0, 1);
+    printf("===========================wait 2========================\n");
     newSit=globalSit;
-    newSit.print(0);
+    //newSit.print(0);
     stopPoint=24;
     dp.clear();
     gs=solve(newSit, 0, 1, -1);
-    printf("########### score %d %d\n", gs.scoreWe, gs.scoreThey);
-    print(newSit, 0, 1);
-    printf("===========================global sit========================\n");
+    printf("########### score %d %d ###################\n", gs.scoreWe, gs.scoreThey);
+    for(int i=0;i<24;i++){
+        if(i%4==0){
+            printf("*********************bridge %d ********************\n", i/4+5);
+            globalSit.print(0);
+        }
+        scanf("%s", colorStr);
+        if(strcmp("com", colorStr)==0){
+            print(globalSit, 0, 0);
+        }
+        else{
+            scanf("%d", &pointInt);
+            pc.color=colorStr[0];
+            pc.point=pointInt;
+            globalSit.NextStep(pc);
+        }
+    }
+    //print(newSit, 0, 1);
+    printf("===========================wait 3========================\n");
     newSit=globalSit;
-    newSit.print(0);
+    //newSit.print(0);
     stopPoint=12;
     dp.clear();
     gs=solve(newSit, 0, 1, -1);
-    printf("########### score %d %d\n", gs.scoreWe, gs.scoreThey);
+    printf("########### score %d %d ###################\n", gs.scoreWe, gs.scoreThey);
+    for(int i=0;i<12;i++){
+        if(i%4==0){
+            printf("*********************bridge %d ********************\n", i/4+11);
+            globalSit.print(0);
+        }
+        scanf("%s", colorStr);
+        if(strcmp("com", colorStr)==0){
+            print(globalSit, 0, 0);
+        }
+        else{
+            scanf("%d", &pointInt);
+            pc.color=colorStr[0];
+            pc.point=pointInt;
+            globalSit.NextStep(pc);
+        }
+    }
+    //print(newSit, 0, 1);
     return 0;
 }
